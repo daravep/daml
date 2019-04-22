@@ -16,7 +16,7 @@ resource "google_compute_region_instance_group_manager" "vsts-agent-windows" {
   base_instance_name = "vsts-win"
 
   region      = "${local.region}"
-  target_size = 10
+  target_size = 1
 
   version {
     name              = "vsts-agent-windows"
@@ -46,7 +46,13 @@ resource "google_compute_instance_template" "vsts-agent-windows" {
     disk_type    = "pd-ssd"
 
     # find the image name with `gcloud compute images list`
-    source_image = "windows-cloud/windows-2016-core"
+    source_image = "windows-cloud/windows-2016"
+  }
+
+  # Drive D:\ for the agent work folder
+  disk {
+    disk_size_gb = 200
+    disk_type    = "pd-ssd"
   }
 
   lifecycle {
@@ -59,34 +65,52 @@ resource "google_compute_instance_template" "vsts-agent-windows" {
 Set-StrictMode -Version latest
 $ErrorActionPreference = 'Stop'
 
-# Install chocolatey
-iex (New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')
-
-# Install git and bash for azure pipelines
-& choco install git.portable --yes 2>&1 | %{ "$_" }
-
-# Add git and bash to the PATH
-$OldPath = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).path
-$NewPath = "$OldPath;C:\tools\git\bin"
-Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $NewPath
+# Disable Windows Defender to speed up disk access
+Set-MpPreference -DisableRealtimeMonitoring $true
 
 # Enable long paths
 Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled -Type DWord -Value 1
 
-# Disable Windows Defender to speed up disk access
-Set-MpPreference -DisableRealtimeMonitoring $true
+# Disable UAC
+New-ItemProperty -Path HKLM:Software\Microsoft\Windows\CurrentVersion\policies\system -Name EnableLUA -PropertyType DWord -Value 0 -Force
+
+# Install chocolatey
+iex (New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')
+
+# Install git, bash
+& choco install git --no-progress --yes 2>&1 | %{ "$_" }
+
+# Add tools to the PATH
+$OldPath = (Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH).path
+$NewPath = "$OldPath;C:\Program Files\Git\bin"
+Set-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment' -Name PATH -Value $NewPath
+
+echo "== Prepare the D:\ drive"
+
+$partition = @"
+select disk 1
+clean
+convert gpt
+create partition primary
+format fs=ntfs quick
+assign letter="D"
+"@
+$partition | Set-Content C:\diskpart.txt
+& diskpart /s C:\diskpart.txt 2>&1 | %{ "$_" }
 
 # Create a temporary and random password for the VSTS user, forget about it once this script has finished running
-$Username = "vssadministrator"
+$Username = "VssAdministrator"
 $Account = "$env:COMPUTERNAME\$Username"
-
 Add-Type -AssemblyName System.Web
 $Password = [System.Web.Security.Membership]::GeneratePassword(24, 0)
 
 echo "== Creating the VSTS user"
 
+#New-LocalUser $Username -Password $SecurePassword -FullName $Username
 net user $Username $Password /add /y
-net localgroup administrators $Username /add
+# net localgroup administrators $Username /add
+Add-LocalGroupMember -Group "Administrators" -Member $Username
+
 winrm set winrm/config/winrs '@{MaxMemoryPerShellMB="2048"}'
 winrm set winrm/config '@{MaxTimeoutms="1800000"}'
 winrm set winrm/config/service/auth '@{Basic="true"}'
@@ -96,7 +120,7 @@ net start winrm
 
 echo "== Installing the VSTS agent"
 
-choco install azure-pipelines-agent --yes --params "'/Token:${local.vsts_token} /Pool:${local.vsts_pool} /Url:https://${local.vsts_account}.visualstudio.com /LogonAccount:$Account /LogonPassword:$Password'"
+choco install azure-pipelines-agent --no-progress --yes --params "'/Token:${local.vsts_token} /Pool:${local.vsts_pool} /Url:https://dev.azure.com/${local.vsts_account}/ /LogonAccount:$Account /LogonPassword:$Password /Work:D:\a'"
 echo OK
 SYSPREP_SPECIALIZE
 
