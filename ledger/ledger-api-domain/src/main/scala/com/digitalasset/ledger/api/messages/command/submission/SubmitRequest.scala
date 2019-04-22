@@ -6,4 +6,4 @@ package com.digitalasset.ledger.api.messages.command.submission
 import brave.propagation.TraceContext
 import com.digitalasset.ledger.api.domain
 
-case class SubmitRequest(commands: domain.Commands, traceContext: Option[TraceContext])
+case class SubmitRequest(commands: domain.CommandsWrapper, traceContext: Option[TraceContext])

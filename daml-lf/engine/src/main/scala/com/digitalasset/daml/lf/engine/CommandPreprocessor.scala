@@ -5,6 +5,7 @@ package com.digitalasset.daml.lf.engine
 
 import java.util
 
+import com.digitalasset.daml.lf.command._
 import com.digitalasset.daml.lf.data.Ref._
 import com.digitalasset.daml.lf.data._
 import com.digitalasset.daml.lf.lfpackage.Ast._
@@ -416,5 +417,8 @@ private[engine] class CommandPreprocessor(compiledPackages: ConcurrentCompiledPa
 
     go(BackStack.empty, ImmArray(cmds0.commands))
   }
+
+  private[engine] def preprocessCommands(cmds: Commands): Result[ImmArray[(Type, SpeedyCommand)]] =
+    Result.sequence(cmds.commands.map(preprocessCommand))
 
 }

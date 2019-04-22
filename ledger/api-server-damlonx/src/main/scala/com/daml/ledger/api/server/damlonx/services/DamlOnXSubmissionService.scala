@@ -22,9 +22,9 @@ import com.digitalasset.daml.lf.lfpackage.{Ast, Decode}
 import com.digitalasset.daml.lf.transaction.Transaction.{Value => TxValue}
 import com.digitalasset.daml.lf.value.Value
 import com.digitalasset.daml.lf.value.Value.AbsoluteContractId
-import com.digitalasset.ledger.api.domain.Commands
+import com.digitalasset.ledger.api.domain.CommandsWrapper
 import com.digitalasset.ledger.api.messages.command.submission.SubmitRequest
-import com.digitalasset.platform.participant.util.ApiToLfEngine.apiCommandsToLfCommands
+import com.digitalasset.platform.participant.util.ApiToLfEngine._
 import com.digitalasset.platform.server.api.services.domain.CommandSubmissionService
 import com.digitalasset.platform.server.api.services.grpc.GrpcCommandSubmissionService
 import com.digitalasset.platform.server.api.validation.{ErrorFactories, IdentifierResolver}
@@ -46,8 +46,11 @@ object DamlOnXSubmissionService {
       ledgerId: LedgerId,
       indexService: IndexService,
       writeService: WriteService,
-      engine: Engine)(implicit ec: ExecutionContext, mat: ActorMaterializer)
-    : CommandSubmissionServiceGrpc.CommandSubmissionService with BindableService with CommandSubmissionServiceLogging =
+      engine: Engine)(
+      implicit ec: ExecutionContext,
+      mat: ActorMaterializer): CommandSubmissionServiceGrpc.CommandSubmissionService
+    with BindableService
+    with CommandSubmissionServiceLogging =
     new GrpcCommandSubmissionService(
       new DamlOnXSubmissionService(indexService, writeService, engine),
       ledgerId.underlyingString,
@@ -78,7 +81,7 @@ class DamlOnXSubmissionService private (
     recordOnLedger(commands)
   }
 
-  private def recordOnLedger(commands: Commands): Future[Unit] = {
+  private def recordOnLedger(commands: CommandsWrapper): Future[Unit] = {
     val ledgerId = Ref.SimpleString.assertFromString(commands.ledgerId.unwrap)
     val getPackage =
       (packageId: Ref.PackageId) =>
@@ -93,15 +96,14 @@ class DamlOnXSubmissionService private (
           indexService
             .lookupActiveContract(ledgerId, coid))
 
-    apiCommandsToLfCommands(commands)
-      .consumeAsync(getPackage)
+    checkPackagesAsync(collectPackages(commands.commands), getPackage)
       .flatMap {
         case Left(e) =>
           logger.error(s"Could not translate commands: $e")
           Future.failed(invalidArgument(s"Could not translate command: $e"))
 
-        case Right(lfCommands) =>
-          consume(engine.submit(lfCommands))(getPackage, getContract)
+        case Right(_) =>
+          consume(engine.submit(commands.commands))(getPackage, getContract)
             .flatMap {
               case Left(err) =>
                 Future.failed(invalidArgument(err.detailMsg))

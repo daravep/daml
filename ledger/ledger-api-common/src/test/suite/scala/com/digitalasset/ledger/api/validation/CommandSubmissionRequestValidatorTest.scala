@@ -6,16 +6,20 @@ package com.digitalasset.ledger.api.validation
 import java.time.Instant
 
 import com.digitalasset.api.util.TimestampConversion
+import com.digitalasset.daml.lf.data.{FrontStack, ImmArray, Time}
+import com.digitalasset.daml.lf.value.{Value => Lf}
 import com.digitalasset.ledger.api.DomainMocks.{applicationId, commandId, workflowId}
+import com.digitalasset.ledger.api.domain.CommandsWrapper
 import com.digitalasset.ledger.api.v1.commands.Commands
 import com.digitalasset.ledger.api.v1.value.Value.Sum
 import com.digitalasset.ledger.api.v1.value.{List => ApiList, _}
 import com.digitalasset.ledger.api.{DomainMocks, domain}
+import com.digitalasset.daml.lf.command.{Commands => LfCommands}
 import com.digitalasset.platform.server.api.validation.IdentifierResolver
 import io.grpc.Status.Code.{INVALID_ARGUMENT, NOT_FOUND}
 import org.scalatest.WordSpec
+import scalaz.syntax.tag._
 
-import scala.collection.immutable
 import scala.concurrent.Future
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
@@ -52,7 +56,7 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
     val let = TimestampConversion.toInstant(api.let)
     val mrt = TimestampConversion.toInstant(api.mrt)
 
-    val emptyCommands = domain.Commands(
+    val emptyCommands = CommandsWrapper(
       domain.LedgerId(ledgerId),
       Some(workflowId),
       applicationId,
@@ -60,7 +64,11 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
       DomainMocks.party,
       let,
       mrt,
-      immutable.Seq.empty
+      LfCommands(
+        ImmArray.empty,
+        Time.Timestamp.assertFromInstant(let),
+        workflowId.unwrap
+      )
     )
   }
 
@@ -85,7 +93,9 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
 
       "tolerate a missing workflowId" in {
         sut.validateCommands(api.commands.withWorkflowId("")) shouldEqual Right(
-          internal.emptyCommands.copy(workflowId = None))
+          internal.emptyCommands.copy(
+            workflowId = None,
+            commands = internal.emptyCommands.commands.copy(commandsReference = "")))
       }
 
       "not allow missing applicationId" in {
@@ -132,9 +142,9 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
             Sum.Record(
               Record(Some(api.identifier), Seq(RecordField(api.label, Some(Value(api.int64)))))))
         val expected =
-          domain.Value.RecordValue(
+          Lf.ValueRecord(
             Some(DomainMocks.identifier),
-            immutable.Seq(domain.RecordField(Some(DomainMocks.label), DomainMocks.values.int64)))
+            ImmArray(Some(DomainMocks.label) -> DomainMocks.values.int64))
         sut.validateValue(record) shouldEqual Right(expected)
       }
 
@@ -142,9 +152,7 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
         val record =
           Value(Sum.Record(Record(None, Seq(RecordField(api.label, Some(Value(api.int64)))))))
         val expected =
-          domain.Value.RecordValue(
-            None,
-            immutable.Seq(domain.RecordField(Some(DomainMocks.label), DomainMocks.values.int64)))
+          Lf.ValueRecord(None, ImmArray(Some(DomainMocks.label) -> DomainMocks.values.int64))
         sut.validateValue(record) shouldEqual Right(expected)
       }
 
@@ -153,7 +161,7 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
           Value(Sum.Record(Record(None, Seq(RecordField("", Some(Value(api.int64)))))))
         val expected =
           domain.Value
-            .RecordValue(None, immutable.Seq(domain.RecordField(None, DomainMocks.values.int64)))
+            .RecordValue(None, ImmArray(None -> DomainMocks.values.int64))
         sut.validateValue(record) shouldEqual Right(expected)
       }
 
@@ -170,7 +178,7 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
       "convert valid variants" in {
         val variant =
           Value(Sum.Variant(Variant(Some(api.identifier), api.constructor, Some(Value(api.int64)))))
-        val expected = domain.Value.VariantValue(
+        val expected = Lf.ValueVariant(
           Some(DomainMocks.identifier),
           DomainMocks.values.constructor,
           DomainMocks.values.int64)
@@ -180,7 +188,7 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
       "tolerate missing identifiers" in {
         val variant = Value(Sum.Variant(Variant(None, api.constructor, Some(Value(api.int64)))))
         val expected =
-          domain.Value.VariantValue(None, DomainMocks.values.constructor, DomainMocks.values.int64)
+          Lf.ValueVariant(None, DomainMocks.values.constructor, DomainMocks.values.int64)
 
         sut.validateValue(variant) shouldEqual Right(expected)
       }
@@ -204,7 +212,7 @@ class CommandSubmissionRequestValidatorTest extends WordSpec with ValidatorTestU
       "convert valid lists" in {
         val list = Value(Sum.List(ApiList(Seq(Value(api.int64), Value(api.int64)))))
         val expected =
-          domain.Value.ListValue(immutable.Seq(DomainMocks.values.int64, DomainMocks.values.int64))
+          Lf.ValueList(FrontStack(ImmArray(DomainMocks.values.int64, DomainMocks.values.int64)))
         sut.validateValue(list) shouldEqual Right(expected)
       }
     }
