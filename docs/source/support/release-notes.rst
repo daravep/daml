@@ -9,6 +9,7 @@ This page contains release notes for the SDK.
 HEAD — ongoing
 --------------
 
+- Introducing "flexible controllers": there's now a new way to specify choices, which allows you to pass the controller in as a parameter. TODO where to read more.
 - Addition of ``DA.Math`` library containing exponentiation, logarithms and trig functions
 - Add CreateAndExerciseCommand to Ledger API and DAMLe for creating a contract
   and exercising a choice on it within the same transaction. This can be used to
