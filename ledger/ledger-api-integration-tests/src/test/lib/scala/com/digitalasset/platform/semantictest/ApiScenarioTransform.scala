@@ -17,7 +17,6 @@ import com.digitalasset.ledger.api.v1.transaction.{TransactionTree, TreeEvent}
 import com.digitalasset.ledger.api.v1.value.{Record, Value => ApiValue}
 import com.digitalasset.ledger.api.validation.CommandSubmissionRequestValidator
 import com.digitalasset.platform.common.{PlatformTypes => P}
-import com.digitalasset.platform.participant.util.ApiToLfEngine._
 import com.digitalasset.platform.server.api.validation.{ErrorFactories, IdentifierResolver}
 import io.grpc.StatusRuntimeException
 import scalaz.Traverse
@@ -60,11 +59,7 @@ class ApiScenarioTransform(ledgerId: String, packages: Map[Ref.PackageId, Ast.Pa
 
   private def toLfValue[Cid](
       apiV: ApiValue): Either[StatusRuntimeException, Value[AbsoluteContractId]] =
-    for {
-      v <- validator.validateValue(apiV)
-      _ = checkPackages(collectPackages(v), packages.get).left.foreach(e =>
-        invalidArgument(e.detailMsg))
-    } yield v
+    validator.validateValue(apiV)
 
   // this is roughly the inverse operation of EventConverter in sandbox
   def eventsFromApiTransaction(transactionTree: TransactionTree)

@@ -14,7 +14,6 @@ import com.digitalasset.ledger.api.messages.command.submission.SubmitRequest
 import com.digitalasset.ledger.api.v1.command_submission_service.CommandSubmissionServiceLogging
 import com.digitalasset.ledger.backend.api.v1.SubmissionResult.{Acknowledged, Overloaded}
 import com.digitalasset.ledger.backend.api.v1.{LedgerBackend, SubmissionResult}
-import com.digitalasset.platform.participant.util.ApiToLfEngine._
 import com.digitalasset.platform.sandbox.config.DamlPackageContainer
 import com.digitalasset.platform.sandbox.stores.ledger.{CommandExecutor, ErrorCause}
 import com.digitalasset.platform.server.api.services.domain.CommandSubmissionService

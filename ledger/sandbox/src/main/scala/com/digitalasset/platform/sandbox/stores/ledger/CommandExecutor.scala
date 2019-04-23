@@ -22,5 +22,6 @@ trait CommandExecutor {
       getContract: Value.AbsoluteContractId => Future[
         Option[Value.ContractInst[TxValue[Value.AbsoluteContractId]]]],
       lookupKey: GlobalKey => Future[Option[AbsoluteContractId]],
-      commands: Commands): Future[Either[ErrorCause, TransactionSubmission]]
+      commands: Commands
+  ): Future[Either[ErrorCause, TransactionSubmission]]
 }

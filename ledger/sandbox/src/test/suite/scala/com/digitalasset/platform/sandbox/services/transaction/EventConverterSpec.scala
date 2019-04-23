@@ -23,7 +23,6 @@ import com.digitalasset.ledger.api.v1.value.Value.Sum.ContractId
 import com.digitalasset.ledger.api.v1.value.{Identifier, Record, RecordField, Value, Variant}
 import com.digitalasset.ledger.api.validation.CommandSubmissionRequestValidator
 import com.digitalasset.platform.common.PlatformTypes.asVersionedValueOrThrow
-import com.digitalasset.platform.participant.util.ApiToLfEngine._
 import com.digitalasset.platform.sandbox.config.DamlPackageContainer
 import com.digitalasset.platform.sandbox.damle.SandboxDamle
 import com.digitalasset.platform.sandbox.services.TestCommands
@@ -111,9 +110,6 @@ class EventConverterSpec
           .validateCommands(commands)
           .map(validatedCommands =>
             for {
-              _ <- checkPackages(
-                collectPackages(validatedCommands.commands),
-                damlPackageContainer.packages.get)
               tx <- Await.result(
                 SandboxDamle.consume(engine.submit(validatedCommands.commands))(
                   damlPackageContainer,
