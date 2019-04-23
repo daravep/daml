@@ -72,11 +72,11 @@ object Decimal {
             .setScale(scale))
     })
 
-  private val hasExpectedFormat: String => Boolean =
-    """[+-]?\d{1,28}(\.\d{1,10})?""".r.pattern.matcher(_).matches()
+  private val hasExpectedFormat =
+    """[+-]?\d{1,28}(\.\d{1,10})?""".r.pattern
 
   def fromString(s: String): Either[String, Decimal] =
-    if (hasExpectedFormat(s))
+    if (hasExpectedFormat.matcher(s).matches())
       checkWithinBoundsAndWithinScale(unlimitedBigDecimal(s))
     else
       Left(s"""Could not read Decimal string "$s" """)
