@@ -100,8 +100,8 @@ class CommandSubmissionRequestValidator(ledgerId: String, identifierResolver: Id
           validatedRecordField <- validateRecordFields(createArguments.fields)
         } yield
           CreateCommand(
-            validatedTemplateId,
-            asVersionedValueOrThrow(Lf.ValueRecord(recordId, validatedRecordField)))
+            templateId = validatedTemplateId,
+            argument = asVersionedValueOrThrow(Lf.ValueRecord(recordId, validatedRecordField)))
 
       case e: ProtoExercise =>
         for {
@@ -113,11 +113,11 @@ class CommandSubmissionRequestValidator(ledgerId: String, identifierResolver: Id
           validatedValue <- validateValue(value)
         } yield
           ExerciseCommand(
-            validatedTemplateId,
-            contractId,
-            choice,
-            submitter,
-            asVersionedValueOrThrow(validatedValue))
+            templateId = validatedTemplateId,
+            contractId = contractId,
+            choiceId = choice,
+            submitter = submitter,
+            argument = asVersionedValueOrThrow(validatedValue))
       case ce: ProtoCreateAndExercise =>
         for {
           templateId <- requirePresence(ce.value.templateId, "template_id")
@@ -129,13 +129,15 @@ class CommandSubmissionRequestValidator(ledgerId: String, identifierResolver: Id
           value <- requirePresence(ce.value.choiceArgument, "value")
           validatedChoiceArgument <- validateValue(value)
         } yield
-          domain.CreateAndExerciseCommand(
-            validatedTemplateId,
-            domain.Value.RecordValue(recordId, validatedRecordField),
-            domain.Choice(choice),
-            validatedChoiceArgument
+          CreateAndExerciseCommand(
+            templateId = validatedTemplateId,
+            createArgument = asVersionedValueOrThrow(Lf.ValueRecord(recordId, validatedRecordField)),
+            choiceId = choice,
+            choiceArgument = asVersionedValueOrThrow(validatedChoiceArgument),
+            submitter = submitter
           )
-      case Empty => Left(missingField("command"))
+      case ProtoEmpty =>
+        Left(missingField("command"))
     }
 
   private def validateRecordFields(recordFields: Seq[RecordField])

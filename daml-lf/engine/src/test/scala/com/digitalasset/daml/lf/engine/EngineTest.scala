@@ -18,7 +18,7 @@ import Value._
 import com.digitalasset.daml.lf.speedy.SValue
 import com.digitalasset.daml.lf.speedy.SValue._
 import com.digitalasset.daml.lf.UniversalArchiveReader
-import com.digitalasset.daml.lf.command.{Commands, CreateCommand, ExerciseCommand}
+import com.digitalasset.daml.lf.command._
 import com.digitalasset.daml.lf.value.ValueVersions.assertAsVersionedValue
 import org.scalatest.{Matchers, WordSpec}
 import scalaz.std.either._
@@ -232,7 +232,7 @@ class EngineTest extends WordSpec with Matchers {
         )
 
       val res = commandTranslator
-        .preprocessCommands(Commands(Seq(command), let, "test"))
+        .preprocessCommands(Commands(ImmArray(command), let, "test"))
         .consume(lookupContractForPayout, lookupPackage, lookupKey)
       res shouldBe 'right
 
@@ -254,7 +254,7 @@ class EngineTest extends WordSpec with Matchers {
         )
 
       val res = commandTranslator
-        .preprocessCommands(Commands(Seq(command), let, "test"))
+        .preprocessCommands(Commands(ImmArray(command), let, "test"))
         .consume(lookupContract, lookupPackage, lookupKey)
       res shouldBe 'right
     }
@@ -274,7 +274,7 @@ class EngineTest extends WordSpec with Matchers {
         )
 
       val res = commandTranslator
-        .preprocessCommands(Commands(Seq(command), let, "test"))
+        .preprocessCommands(Commands(ImmArray(command), let, "test"))
         .consume(lookupContract, lookupPackage, lookupKey)
       res shouldBe 'left
     }
@@ -296,7 +296,7 @@ class EngineTest extends WordSpec with Matchers {
         )
 
       val res = commandTranslator
-        .preprocessCommands(Commands(Seq(command), let, "test"))
+        .preprocessCommands(Commands(ImmArray(command), let, "test"))
         .consume(lookupContract, lookupPackage, lookupKey)
       res shouldBe 'left
     }
@@ -516,7 +516,7 @@ class EngineTest extends WordSpec with Matchers {
       )
 
     val res = commandTranslator
-      .preprocessCommands(Commands(Seq(command), let, "test"))
+      .preprocessCommands(Commands(ImmArray(command), let, "test"))
       .consume(lookupContract, lookupPackage, lookupKey)
     res shouldBe 'right
     val interpretResult =

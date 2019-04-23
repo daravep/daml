@@ -415,10 +415,7 @@ private[engine] class CommandPreprocessor(compiledPackages: ConcurrentCompiledPa
     def goResume(processed: BackStack[(Type, SpeedyCommand)], toProcess: ImmArray[Command]) =
       go(processed, toProcess)
 
-    go(BackStack.empty, ImmArray(cmds0.commands))
+    go(BackStack.empty, cmds0.commands)
   }
-
-  private[engine] def preprocessCommands(cmds: Commands): Result[ImmArray[(Type, SpeedyCommand)]] =
-    Result.sequence(cmds.commands.map(preprocessCommand))
 
 }

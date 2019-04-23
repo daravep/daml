@@ -269,11 +269,4 @@ object domain {
       maximumRecordTime: Instant,
       commands: Commands)
 
-  final case class CreateAndExerciseCommand(
-      templateId: Ref.Identifier,
-      createArgument: RecordValue,
-      choice: Choice,
-      choiceArgument: Value)
-      extends Command
-
 }

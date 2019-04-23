@@ -72,6 +72,17 @@ object ApiToLfEngine {
               argument
               ) =>
             collectPackagesInValue(FrontStack(argument.value), acc + templateId.packageId)
+          case CreateAndExerciseCommand(
+              templateId,
+              createArgument,
+              _ @choiceId,
+              choiceArgument,
+              _ @submitter
+              ) =>
+            collectPackagesInValue(
+              FrontStack(createArgument.value, choiceArgument.value),
+              acc + templateId.packageId
+            )
         }
     }
 
