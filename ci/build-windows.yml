@@ -10,3 +10,10 @@ steps:
 
   - powershell: '.\build.ps1 full'
     displayName: 'Build'
+
+  - task: PublishBuildArtifacts@1
+    condition: succeededOrFailed()
+    displayName: 'Publish the bazel execution logs'
+    inputs:
+      pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: 'Execution logs'
