@@ -40,6 +40,7 @@ da_haskell_library(
         "ghc-lib",
         "ghc-lib-parser",
         "hashable",
+        "haskell-lsp-types",
         "http-types",
         "lens",
         "managed",
