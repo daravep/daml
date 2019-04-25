@@ -31,8 +31,8 @@ resource "google_compute_region_instance_group_manager" "vsts-agent-windows" {
     max_surge_fixed = 3
 
     # calculated with: serial console last timestamp after boot - VM start
-    # 13:04:27 - 12:57:12 ~= 8 * 60 = 480
-    min_ready_sec = 480
+    # 09:54:28 - 09:45:55 = 513 seconds
+    min_ready_sec = 520
   }
 }
 
